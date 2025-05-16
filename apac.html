@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tourism Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light background for the body */
+        }
+        /* Custom scrollbar for Webkit browsers */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Page transition effect */
+        .page {
+            display: none; /* Initially hide all pages */
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .page.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Carousel styles */
+        .carousel-container {
+            position: relative;
+            width: 100%;
+            height: 400px; /* Adjust as needed */
+            overflow: hidden;
+            border-radius: 0.5rem; /* rounded-lg */
+        }
+        .carousel-slide {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            transition: opacity 1s ease-in-out;
+        }
+        .carousel-slide.active {
+            display: block;
+            opacity: 1;
+        }
+        .carousel-slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .carousel-caption {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background-color: rgba(0,0,0,0.5);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 0.375rem; /* rounded-md */
+        }
+
+        /* Active Nav Link Style */
+        .nav-link.active {
+            background-color: #2563eb; /* blue-600 */
+            color: white;
+        }
+        .nav-link:hover {
+            background-color: #3b82f6; /* blue-500 */
+            color: white;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: #fff;
+            margin: auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .modal.active {
+            display: flex;
+        }
+
+        /* Chatbot styles */
+        #chatbot-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 999;
+        }
+        #chatbot-window {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 350px;
+            height: 450px;
+            background-color: white;
+            border-radius: 0.5rem; /* rounded-lg */
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); /* shadow-lg */
+            display: none;
+            flex-direction: column;
+            z-index: 998;
+            overflow: hidden;
+        }
+        #chatbot-window.active {
+            display: flex;
+        }
+        .chatbot-header {
+            background-color: #3b82f6; /* blue-500 */
+            color: white;
+            padding: 0.75rem; /* p-3 */
+            font-weight: 600; /* font-semibold */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chatbot-messages {
+            flex-grow: 1;
+            padding: 0.75rem; /* p-3 */
+            overflow-y: auto;
+            background-color: #f9fafb; /* bg-gray-50 */
+        }
+        .chatbot-input {
+            border-top: 1px solid #e5e7eb; /* border-gray-200 */
+            padding: 0.75rem; /* p-3 */
+            display: flex;
+        }
+        .chatbot-input input {
+            flex-grow: 1;
+            border: 1px solid #d1d5db; /* border-gray-300 */
+            padding: 0.5rem; /* p-2 */
+            border-radius: 0.375rem; /* rounded-md */
+            margin-right: 0.5rem; /* mr-2 */
+        }
+        .chatbot-input button {
+            background-color: #3b82f6; /* blue-500 */
+            color: white;
+            padding: 0.5rem 1rem; /* p-2 px-4 */
+            border-radius: 0.375rem; /* rounded-md */
+        }
+        .message {
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+            max-width: 80%;
+        }
+        .message.user {
+            background-color: #dbeafe; /* blue-100 */
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        .message.bot {
+            background-color: #e5e7eb; /* gray-200 */
+            align-self: flex-start;
+        }
+    </style>
+</head>
+<body class="bg-slate-100">
+
+    <nav class="bg-white/80 backdrop-blur-md shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <a href="#" class="text-2xl font-bold text-blue-600">
+                        <i class="fas fa-umbrella-beach mr-2"></i>Tourista
+                    </a>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-1">
+                        <button onclick="showPage('home')" class="nav-link text-gray-700 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium active">Home</button>
+                        <button onclick="showPage('flights')" class="nav-link text-gray-700 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Book Flights</button>
+                        <button onclick="showPage('tourism')" class="nav-link text-gray-700 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Book Tourism</button>
+                        <button onclick="showPage('transport')" class="nav-link text-gray-700 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Transport</button>
+                        <button onclick="showPage('visa')" class="nav-link text-gray-700 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Visa Application</button>
+                        <button onclick="showPage('hotel')" class="nav-link text-gray-700 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Book Hotel</button>
+                        <button onclick="showPage('packages')" class="nav-link text-gray-700 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Best Packages</button>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="text-gray-700 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="md:hidden hidden" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <button onclick="showPage('home'); toggleMobileMenu();" class="nav-link text-gray-700 hover:bg-blue-500 hover:text-white block px-3 py-2 rounded-md text-base font-medium w-full text-left active">Home</button>
+                <button onclick="showPage('flights'); toggleMobileMenu();" class="nav-link text-gray-700 hover:bg-blue-500 hover:text-white block px-3 py-2 rounded-md text-base font-medium w-full text-left">Book Flights</button>
+                <button onclick="showPage('tourism'); toggleMobileMenu();" class="nav-link text-gray-700 hover:bg-blue-500 hover:text-white block px-3 py-2 rounded-md text-base font-medium w-full text-left">Book Tourism</button>
+                <button onclick="showPage('transport'); toggleMobileMenu();" class="nav-link text-gray-700 hover:bg-blue-500 hover:text-white block px-3 py-2 rounded-md text-base font-medium w-full text-left">Transport</button>
+                <button onclick="showPage('visa'); toggleMobileMenu();" class="nav-link text-gray-700 hover:bg-blue-500 hover:text-white block px-3 py-2 rounded-md text-base font-medium w-full text-left">Visa Application</button>
+                <button onclick="showPage('hotel'); toggleMobileMenu();" class="nav-link text-gray-700 hover:bg-blue-500 hover:text-white block px-3 py-2 rounded-md text-base font-medium w-full text-left">Book Hotel</button>
+                <button onclick="showPage('packages'); toggleMobileMenu();" class="nav-link text-gray-700 hover:bg-blue-500 hover:text-white block px-3 py-2 rounded-md text-base font-medium w-full text-left">Best Packages</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <div id="home" class="page active">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">Welcome to Tourista!</h1>
+            <div class="carousel-container mb-8 shadow-lg">
+                <div class="carousel-slide active">
+                    <img src="https://placehold.co/1200x400/3b82f6/ffffff?text=Beautiful+Beaches" alt="Scenic Beach">
+                    <div class="carousel-caption">Discover Sunny Beaches</div>
+                </div>
+                <div class="carousel-slide">
+                    <img src="https://placehold.co/1200x400/10b981/ffffff?text=Majestic+Mountains" alt="Majestic Mountains">
+                    <div class="carousel-caption">Explore Mountain Ranges</div>
+                </div>
+                <div class="carousel-slide">
+                    <img src="https://placehold.co/1200x400/ef4444/ffffff?text=Historic+Cities" alt="Historic Cities">
+                    <div class="carousel-caption">Visit Ancient Cities</div>
+                </div>
+            </div>
+
+            <section class="mb-8">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-4">Top Places to Visit this Season</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="bg-white rounded-lg shadow-lg overflow-hidden transform hover:scale-105 transition-transform duration-300">
+                        <img src="https://placehold.co/600x400/8b5cf6/ffffff?text=Kyoto+Gardens" alt="Kyoto" class="w-full h-48 object-cover">
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-2">Serene Kyoto Gardens</h3>
+                            <p class="text-gray-600 text-sm mb-2">Experience tranquility and beauty in traditional Japanese gardens.</p>
+                            <span class="inline-block bg-green-200 text-green-800 text-xs px-2 py-1 rounded-full">Sunny - 22°C</span>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-lg overflow-hidden transform hover:scale-105 transition-transform duration-300">
+                        <img src="https://placehold.co/600x400/ec4899/ffffff?text=Parisian+Spring" alt="Paris" class="w-full h-48 object-cover">
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-2">Paris in Spring</h3>
+                            <p class="text-gray-600 text-sm mb-2">Enjoy blooming flowers and romantic walks by the Seine.</p>
+                            <span class="inline-block bg-yellow-200 text-yellow-800 text-xs px-2 py-1 rounded-full">Mild - 18°C</span>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-lg overflow-hidden transform hover:scale-105 transition-transform duration-300">
+                        <img src="https://placehold.co/600x400/f59e0b/ffffff?text=Swiss+Alps+Adventure" alt="Swiss Alps" class="w-full h-48 object-cover">
+                        <div class="p-4">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-2">Swiss Alps Adventure</h3>
+                            <p class="text-gray-600 text-sm mb-2">Breathtaking views and exhilarating hikes in the mountains.</p>
+                            <span class="inline-block bg-blue-200 text-blue-800 text-xs px-2 py-1 rounded-full">Cool - 15°C</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2 class="text-2xl font-semibold text-gray-700 mb-4">Trending Packages</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                     <div class="bg-white rounded-lg shadow-lg p-4">
+                        <h3 class="text-lg font-semibold text-blue-600 mb-2">Maldives Getaway</h3>
+                        <p class="text-sm text-gray-600 mb-3">5 Days / 4 Nights</p>
+                        <div class="flex space-x-2 text-blue-500 mb-3">
+                            <i class="fas fa-hotel" title="Hotel Included"></i>
+                            <i class="fas fa-plane" title="Flight Included"></i>
+                            <i class="fas fa-car" title="Transport Included"></i>
+                        </div>
+                        <button class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-300">View Details</button>
+                    </div>
+                     <div class="bg-white rounded-lg shadow-lg p-4">
+                        <h3 class="text-lg font-semibold text-blue-600 mb-2">Rome Historical Tour</h3>
+                        <p class="text-sm text-gray-600 mb-3">3 Days / 2 Nights</p>
+                        <div class="flex space-x-2 text-blue-500 mb-3">
+                            <i class="fas fa-hotel" title="Hotel Included"></i>
+                            <i class="fas fa-landmark" title="Sightseeing"></i>
+                        </div>
+                        <button class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-300">View Details</button>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-lg p-4">
+                        <h3 class="text-lg font-semibold text-blue-600 mb-2">Dubai Luxury Escape</h3>
+                        <p class="text-sm text-gray-600 mb-3">7 Days / 6 Nights</p>
+                        <div class="flex space-x-2 text-blue-500 mb-3">
+                            <i class="fas fa-hotel" title="Hotel Included"></i>
+                            <i class="fas fa-plane" title="Flight Included"></i>
+                            <i class="fas fa-taxi" title="Private Transport"></i>
+                            <i class="fas fa-utensils" title="Meals Included"></i>
+                        </div>
+                        <button class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-300">View Details</button>
+                    </div>
+                     <div class="bg-white rounded-lg shadow-lg p-4">
+                        <h3 class="text-lg font-semibold text-blue-600 mb-2">Bali Yoga Retreat</h3>
+                        <p class="text-sm text-gray-600 mb-3">6 Days / 5 Nights</p>
+                        <div class="flex space-x-2 text-blue-500 mb-3">
+                            <i class="fas fa-hotel" title="Hotel Included"></i>
+                            <i class="fas fa-spa" title="Spa & Yoga"></i>
+                        </div>
+                        <button class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-300">View Details</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div id="flights" class="page">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">Book Your Flight</h1>
+            <div class="bg-white p-6 rounded-lg shadow-lg mb-6">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">Search Flights</h2>
+                <form id="flight-search-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+                    <div>
+                        <label for="from-city" class="block text-sm font-medium text-gray-700">From</label>
+                        <input type="text" id="from-city" name="from-city" placeholder="e.g., New York" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="to-city" class="block text-sm font-medium text-gray-700">To</label>
+                        <input type="text" id="to-city" name="to-city" placeholder="e.g., London" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="flight-date" class="block text-sm font-medium text-gray-700">Date</label>
+                        <input type="date" id="flight-date" name="flight-date" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    </div>
+                    <div class="flex items-center space-x-4 mt-4 md:mt-0">
+                        <span class="text-sm font-medium text-gray-700">Type:</span>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="flight-type" value="one-way" class="form-radio h-4 w-4 text-blue-600" checked>
+                            <span class="ml-2 text-sm text-gray-700">One-Way</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="flight-type" value="return" class="form-radio h-4 w-4 text-blue-600">
+                            <span class="ml-2 text-sm text-gray-700">Return</span>
+                        </label>
+                    </div>
+                    <button type="button" onclick="searchFlights()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md transition duration-300">
+                        <i class="fas fa-search mr-2"></i>Search
+                    </button>
+                </form>
+            </div>
+            <div id="flight-results-loader" class="text-center py-4 hidden">
+                <i class="fas fa-spinner fa-spin text-blue-500 text-2xl"></i>
+                <p class="text-gray-600 mt-2">Searching for flights...</p>
+            </div>
+            <div id="flight-results" class="hidden">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-4">Search Results</h2>
+                </div>
+        </div>
+
+        <div id="tourism" class="page">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">Discover Tourism Packages</h1>
+            <div class="bg-white p-6 rounded-lg shadow-lg mb-6">
+                <label for="tourism-city" class="block text-sm font-medium text-gray-700">Select City</label>
+                <div class="flex items-center space-x-2">
+                    <select id="tourism-city" name="tourism-city" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        <option>Select a city</option>
+                        <option value="lahore">Lahore</option>
+                        <option value="paris">Paris</option>
+                        <option value="tokyo">Tokyo</option>
+                        <option value="rome">Rome</option>
+                    </select>
+                    <button type="button" onclick="searchTourismPackages()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 whitespace-nowrap">
+                        Find Packages
+                    </button>
+                </div>
+            </div>
+            <div id="tourism-results-loader" class="text-center py-4 hidden">
+                <i class="fas fa-spinner fa-spin text-blue-500 text-2xl"></i>
+                <p class="text-gray-600 mt-2">Loading packages...</p>
+            </div>
+            <div id="tourism-package-results" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                </div>
+        </div>
+
+        <div id="transport" class="page">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">Book Transport</h1>
+            <div class="bg-white p-6 rounded-lg shadow-lg mb-6">
+                <label for="transport-city" class="block text-sm font-medium text-gray-700">Enter City</label>
+                 <div class="flex items-center space-x-2 mb-4">
+                    <input type="text" id="transport-city-input" placeholder="e.g., Berlin" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <button type="button" onclick="searchTransport()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 whitespace-nowrap">
+                        Find Transport
+                    </button>
+                </div>
+
+                <div class="border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                        <button onclick="showTransportTab('train')" id="train-tab" class="transport-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-blue-500 text-blue-600">
+                            <i class="fas fa-train mr-2"></i>Train
+                        </button>
+                        <button onclick="showTransportTab('car')" id="car-tab" class="transport-tab whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                            <i class="fas fa-car mr-2"></i>Car Rental
+                        </button>
+                    </nav>
+                </div>
+            </div>
+
+            <div id="transport-results-loader" class="text-center py-4 hidden">
+                <i class="fas fa-spinner fa-spin text-blue-500 text-2xl"></i>
+                <p class="text-gray-600 mt-2">Searching transport options...</p>
+            </div>
+
+            <div id="transport-options">
+                <div id="train-options" class="transport-content">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-3">Train Options</h2>
+                    <div class="space-y-4">
+                        <div class="bg-white p-4 rounded-lg shadow-md">
+                            <h3 class="text-lg font-semibold text-blue-600">InterCity Express</h3>
+                            <p class="text-sm text-gray-500">Economy Class | Departs: 08:00 AM | Arrives: 12:30 PM</p>
+                            <div class="flex justify-between items-center mt-2">
+                                <div>
+                                    <p class="text-lg font-bold text-gray-800">$50</p>
+                                    <p class="text-xs text-green-500">Available Today</p>
+                                </div>
+                                <button class="bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-md text-sm">Book Now</button>
+                            </div>
+                        </div>
+                         <div class="bg-white p-4 rounded-lg shadow-md">
+                            <h3 class="text-lg font-semibold text-blue-600">Regional Sprinter</h3>
+                            <p class="text-sm text-gray-500">Business Class | Departs: 10:30 AM | Arrives: 01:00 PM</p>
+                            <div class="flex justify-between items-center mt-2">
+                                <div>
+                                    <p class="text-lg font-bold text-gray-800">$85</p>
+                                    <p class="text-xs text-green-500">Available Today</p>
+                                </div>
+                                <button class="bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded-md text-sm">Book Now</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="car-options" class="transport-content hidden">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-3">Car Rental Options</h2>
+                     <div class="space-y-4">
+                        <div class="bg-white p-4 rounded-lg shadow-md">
+                            <h3 class="text-lg font-semibold text-blue-600">Compact Sedan (e.g., Toyota Corolla)</h3>
+                            <p class="text-sm text-gray-500">Includes: AC, GPS, Insurance</p>
+                            <div class="flex justify-between items-center mt-2">
+                                <div>
+                                    <p class="text-lg font-bold text-gray-800">$45 / day</p>
+                                    <p class="text-xs text-green-500">Available Now</p>
+                                </div>
+                                <button class="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-1 px-3 rounded-md text-sm">Rent Now</button>
+                            </div>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-md">
+                            <h3 class="text-lg font-semibold text-blue-600">SUV (e.g., Ford Explorer)</h3>
+                            <p class="text-sm text-gray-500">Includes: AC, GPS, Insurance, 7-seater</p>
+                            <div class="flex justify-between items-center mt-2">
+                                <div>
+                                    <p class="text-lg font-bold text-gray-800">$70 / day</p>
+                                    <p class="text-xs text-yellow-500">Limited Availability</p>
+                                </div>
+                                <button class="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-1 px-3 rounded-md text-sm">Rent Now</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="visa" class="page">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">Visa Application</h1>
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <div class="mb-6">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-2">Step 1: Select Destination City</h2>
+                    <select id="visa-destination-city" class="mt-1 block w-full md:w-1/2 px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        <option>Select your destination</option>
+                        <option value="usa">United States</option>
+                        <option value="uk">United Kingdom</option>
+                        <option value="schengen">Schengen Area</option>
+                        <option value="uae">United Arab Emirates</option>
+                    </select>
+                </div>
+
+                <div id="visa-form-section" class="hidden">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-4">Step 2: Fill Your Details</h2>
+                    <form id="visa-application-form" class="space-y-4">
+                        <div>
+                            <label for="full-name" class="block text-sm font-medium text-gray-700">Full Name</label>
+                            <input type="text" id="full-name" name="full-name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="passport-number" class="block text-sm font-medium text-gray-700">Passport Number</label>
+                            <input type="text" id="passport-number" name="passport-number" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="country-origin" class="block text-sm font-medium text-gray-700">Country of Origin</label>
+                            <input type="text" id="country-origin" name="country-origin" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="travel-date-start" class="block text-sm font-medium text-gray-700">Travel Start Date</label>
+                                <input type="date" id="travel-date-start" name="travel-date-start" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            </div>
+                             <div>
+                                <label for="travel-date-end" class="block text-sm font-medium text-gray-700">Travel End Date</label>
+                                <input type="date" id="travel-date-end" name="travel-date-end" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
+                            <input type="email" id="email" name="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="documents" class="block text-sm font-medium text-gray-700">Upload Documents (Dummy)</label>
+                            <input type="file" id="documents" name="documents" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                            <p class="text-xs text-gray-500 mt-1">Max file size: 5MB. Allowed types: PDF, JPG, PNG.</p>
+                        </div>
+                        <button type="button" onclick="submitVisaApplication()" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300">
+                            Submit Application
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div id="hotel" class="page">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">Find Your Perfect Hotel</h1>
+             <div class="bg-white p-6 rounded-lg shadow-lg mb-6">
+                <label for="hotel-city" class="block text-sm font-medium text-gray-700">Enter City</label>
+                <div class="flex items-center space-x-2">
+                    <input type="text" id="hotel-city-input" placeholder="e.g., Bali" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    <button type="button" onclick="searchHotels()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 whitespace-nowrap">
+                        Search Hotels
+                    </button>
+                </div>
+            </div>
+            <div id="hotel-results-loader" class="text-center py-4 hidden">
+                <i class="fas fa-spinner fa-spin text-blue-500 text-2xl"></i>
+                <p class="text-gray-600 mt-2">Searching for hotels...</p>
+            </div>
+            <div id="hotel-results" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                </div>
+        </div>
+
+        <div id="packages" class="page">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">Find the Best Combined Packages</h1>
+            <div class="bg-white p-6 rounded-lg shadow-lg mb-6">
+                <form id="best-package-form" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div>
+                        <label for="package-city" class="block text-sm font-medium text-gray-700">City</label>
+                        <input type="text" id="package-city" name="package-city" placeholder="e.g., Bangkok" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="package-date" class="block text-sm font-medium text-gray-700">Travel Date</label>
+                        <input type="date" id="package-date" name="package-date" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                    </div>
+                    <button type="button" onclick="searchBestPackages()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md transition duration-300">
+                        Find Packages
+                    </button>
+                </form>
+            </div>
+            <div id="best-package-loader" class="text-center py-4 hidden">
+                <i class="fas fa-spinner fa-spin text-blue-500 text-2xl"></i>
+                <p class="text-gray-600 mt-2">Crafting your package...</p>
+            </div>
+            <div id="best-package-results" class="hidden bg-white p-6 rounded-lg shadow-xl">
+                </div>
+        </div>
+    </main>
+
+    <button id="chatbot-button" class="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-transform hover:scale-110">
+        <i class="fas fa-comments text-2xl"></i>
+    </button>
+
+    <div id="chatbot-window">
+        <div class="chatbot-header">
+            <span>Tourista Assistant</span>
+            <button id="close-chatbot" class="text-white hover:text-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="chatbot-messages-container" class="chatbot-messages flex flex-col">
+            <div class="message bot">Hello! How can I help you plan your trip today?</div>
+            </div>
+        <div class="chatbot-input">
+            <input type="text" id="chatbot-user-input" placeholder="Type your message...">
+            <button id="chatbot-send-button"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <div id="generic-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title" class="text-xl font-semibold mb-3">Notification</h3>
+            <p id="modal-message" class="text-gray-700 mb-4">This is a modal message.</p>
+            <button onclick="closeModal()" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg">OK</button>
+        </div>
+    </div>
+
+
+    <script>
+        // --- Page Navigation ---
+        const pages = document.querySelectorAll('.page');
+        const navLinks = document.querySelectorAll('.nav-link');
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        function showPage(pageId) {
+            pages.forEach(page => {
+                page.classList.remove('active');
+                if (page.id === pageId) {
+                    page.classList.add('active');
+                }
+            });
+            // Update active link style
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                // Check both desktop and mobile links
+                if (link.getAttribute('onclick').includes(`showPage('${pageId}')`)) {
+                    link.classList.add('active');
+                }
+            });
+             window.scrollTo(0, 0); // Scroll to top on page change
+        }
+
+        mobileMenuButton.addEventListener('click', toggleMobileMenu);
+
+        function toggleMobileMenu() {
+            mobileMenu.classList.toggle('hidden');
+        }
+
+
+        // --- Carousel Logic ---
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.carousel-slide');
+        const slideInterval = 5000; // 5 seconds
+
+        function nextSlide() {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (currentSlide + 1) % slides.length;
+            slides[currentSlide].classList.add('active');
+        }
+        // Auto-play carousel
+        setInterval(nextSlide, slideInterval);
+
+
+        // --- Modal Logic ---
+        const genericModal = document.getElementById('generic-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+
+        function showModal(title, message) {
+            modalTitle.textContent = title;
+            modalMessage.innerHTML = message; // Use innerHTML to allow for HTML in message
+            genericModal.classList.add('active');
+        }
+
+        function closeModal() {
+            genericModal.classList.remove('active');
+        }
+        // Close modal if user clicks outside of it
+        window.onclick = function(event) {
+            if (event.target == genericModal) {
+                closeModal();
+            }
+        }
+
+        // --- Chatbot Logic ---
+        const chatbotButton = document.getElementById('chatbot-button');
+        const chatbotWindow = document.getElementById('chatbot-window');
+        const closeChatbotButton = document.getElementById('close-chatbot');
+        const chatbotMessagesContainer = document.getElementById('chatbot-messages-container');
+        const chatbotUserInput = document.getElementById('chatbot-user-input');
+        const chatbotSendButton = document.getElementById('chatbot-send-button');
+
+        chatbotButton.addEventListener('click', () => {
+            chatbotWindow.classList.toggle('active');
+        });
+        closeChatbotButton.addEventListener('click', () => {
+            chatbotWindow.classList.remove('active');
+        });
+
+        function addChatMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', type);
+            messageDiv.textContent = message;
+            chatbotMessagesContainer.appendChild(messageDiv);
+            chatbotMessagesContainer.scrollTop = chatbotMessagesContainer.scrollHeight; // Scroll to bottom
+        }
+
+        chatbotSendButton.addEventListener('click', sendUserMessage);
+        chatbotUserInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendUserMessage();
+            }
+        });
+
+        function sendUserMessage() {
+            const messageText = chatbotUserInput.value.trim();
+            if (messageText) {
+                addChatMessage(messageText, 'user');
+                chatbotUserInput.value = '';
+                // Dummy bot response
+                setTimeout(() => {
+                    let botResponse = "I'm still learning! How about asking for flight deals to Paris?";
+                    if (messageText.toLowerCase().includes("hello") || messageText.toLowerCase().includes("hi")) {
+                        botResponse = "Hello there! What can I help you with today?";
+                    } else if (messageText.toLowerCase().includes("flight")) {
+                        botResponse = "You can book flights using the 'Book Flights' tab. Where would you like to go?";
+                    } else if (messageText.toLowerCase().includes("hotel")) {
+                        botResponse = "Looking for a hotel? Use the 'Book Hotel' tab and enter your destination city!";
+                    }
+                    addChatMessage(botResponse, 'bot');
+                }, 1000);
+            }
+        }
+
+
+        // --- Book Flights Page Logic ---
+        const flightResultsContainer = document.getElementById('flight-results');
+        const flightLoader = document.getElementById('flight-results-loader');
+
+        function searchFlights() {
+            flightResultsContainer.innerHTML = ''; // Clear previous results
+            flightResultsContainer.classList.add('hidden');
+            flightLoader.classList.remove('hidden');
+
+            // Simulate API call
+            setTimeout(() => {
+                flightLoader.classList.add('hidden');
+                flightResultsContainer.classList.remove('hidden');
+                const dummyFlights = [
+                    { airline: "SkyHigh Airlines", flightNo: "SH234", from: "JFK", to: "LHR", departure: "08:00 AM", arrival: "08:00 PM", price: "$550", duration: "8h 00m" },
+                    { airline: "BlueSky Airways", flightNo: "BS789", from: "JFK", to: "LHR", departure: "10:30 AM", arrival: "10:00 PM", price: "$620", duration: "7h 30m" },
+                    { airline: "ConnectJet", flightNo: "CJ101", from: "JFK", to: "LHR", departure: "01:15 PM", arrival: "01:00 AM", price: "$500", duration: "7h 45m" }
+                ];
+
+                if (dummyFlights.length === 0) {
+                    flightResultsContainer.innerHTML = '<p class="text-gray-600">No flights found for your criteria.</p>';
+                    return;
+                }
+                
+                let resultsHTML = '<h2 class="text-2xl font-semibold text-gray-700 mb-4">Available Flights</h2>';
+                resultsHTML += '<div class="space-y-4">';
+                dummyFlights.forEach(flight => {
+                    resultsHTML += `
+                        <div class="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
+                            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 items-center">
+                                <div>
+                                    <p class="font-semibold text-blue-600">${flight.airline}</p>
+                                    <p class="text-xs text-gray-500">${flight.flightNo}</p>
+                                </div>
+                                <div class="text-center">
+                                    <p class="text-lg font-medium">${flight.departure}</p>
+                                    <p class="text-sm text-gray-500">${document.getElementById('from-city').value || flight.from}</p>
+                                </div>
+                                <div class="text-center hidden md:block"><i class="fas fa-long-arrow-alt-right text-gray-400"></i></div>
+                                <div class="text-center">
+                                    <p class="text-lg font-medium">${flight.arrival}</p>
+                                    <p class="text-sm text-gray-500">${document.getElementById('to-city').value || flight.to}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xl font-bold text-green-600">${flight.price}</p>
+                                    <p class="text-xs text-gray-500">${flight.duration}</p>
+                                    <button class="mt-1 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold py-1 px-3 rounded-md" onclick="showModal('Flight Booked!', 'Your flight with ${flight.airline} has been successfully booked (this is a dummy confirmation).')">Select</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                resultsHTML += '</div>';
+                flightResultsContainer.innerHTML = resultsHTML;
+            }, 1500);
+        }
+
+        // --- Book Tourism Page Logic ---
+        const tourismCitySelect = document.getElementById('tourism-city');
+        const tourismPackagesContainer = document.getElementById('tourism-package-results');
+        const tourismLoader = document.getElementById('tourism-results-loader');
+
+        function searchTourismPackages() {
+            const selectedCity = tourismCitySelect.value;
+            if (!selectedCity || selectedCity === "Select a city") {
+                showModal("Selection Missing", "Please select a city to find tourism packages.");
+                return;
+            }
+
+            tourismPackagesContainer.innerHTML = '';
+            tourismPackagesContainer.classList.add('hidden');
+            tourismLoader.classList.remove('hidden');
+
+            setTimeout(() => {
+                tourismLoader.classList.add('hidden');
+                tourismPackagesContainer.classList.remove('hidden');
+                const packages = {
+                    lahore: [
+                        { name: "Cultural Tour of Lahore", duration: "3 Days / 2 Nights", price: "$150", highlights: ["Badshahi Mosque", "Lahore Fort", "Food Street"], img: "https://placehold.co/600x400/f97316/ffffff?text=Lahore+Culture" },
+                        { name: "Walled City Exploration", duration: "2 Days / 1 Night", price: "$100", highlights: ["Delhi Gate", "Wazir Khan Mosque", "Shahi Hammam"], img: "https://placehold.co/600x400/14b8a6/ffffff?text=Walled+City" }
+                    ],
+                    paris: [
+                        { name: "Parisian Dream Tour", duration: "4 Days / 3 Nights", price: "$450", highlights: ["Eiffel Tower", "Louvre Museum", "Seine Cruise"], img: "https://placehold.co/600x400/ec4899/ffffff?text=Paris+Dream" },
+                        { name: "Montmartre Art Walk", duration: "1 Day", price: "$80", highlights: ["Sacre-Coeur", "Artists' Square", "Moulin Rouge (exterior)"], img: "https://placehold.co/600x400/8b5cf6/ffffff?text=Montmartre+Art" }
+                    ],
+                    tokyo: [
+                        { name: "Tokyo Modern & Tradition", duration: "5 Days / 4 Nights", price: "$700", highlights: ["Shibuya Crossing", "Senso-ji Temple", "Tokyo Skytree"], img: "https://placehold.co/600x400/ef4444/ffffff?text=Tokyo+Mix" }
+                    ],
+                     rome: [
+                        { name: "Ancient Rome Discovery", duration: "3 Days / 2 Nights", price: "$350", highlights: ["Colosseum", "Roman Forum", "Vatican City"], img: "https://placehold.co/600x400/f59e0b/ffffff?text=Ancient+Rome" }
+                    ]
+                };
+                const cityPackages = packages[selectedCity] || [];
+                 if (cityPackages.length === 0) {
+                    tourismPackagesContainer.innerHTML = '<p class="text-gray-600 col-span-full text-center">No tourism packages found for this city.</p>';
+                    return;
+                }
+
+                let packagesHTML = '';
+                cityPackages.forEach(pkg => {
+                    packagesHTML += `
+                        <div class="bg-white rounded-lg shadow-lg overflow-hidden transform hover:scale-105 transition-transform duration-300">
+                            <img src="${pkg.img}" alt="${pkg.name}" class="w-full h-48 object-cover">
+                            <div class="p-4">
+                                <h3 class="text-xl font-semibold text-gray-800 mb-2">${pkg.name}</h3>
+                                <p class="text-sm text-gray-500 mb-1">${pkg.duration}</p>
+                                <p class="text-lg font-bold text-blue-600 mb-2">${pkg.price}</p>
+                                <p class="text-sm font-medium text-gray-700 mb-1">Highlights:</p>
+                                <ul class="list-disc list-inside text-sm text-gray-600 mb-3">
+                                    ${pkg.highlights.map(h => `<li><i class="fas fa-check-circle text-green-500 mr-1"></i>${h}</li>`).join('')}
+                                </ul>
+                                <button class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg" onclick="showModal('Package Booked!', '${pkg.name} has been booked (dummy confirmation).')">Book Now</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                tourismPackagesContainer.innerHTML = packagesHTML;
+
+            }, 1500);
+        }
+
+
+        // --- Transport Page Logic ---
+        const transportTabs = document.querySelectorAll('.transport-tab');
+        const transportContents = document.querySelectorAll('.transport-content');
+        const transportLoader = document.getElementById('transport-results-loader');
+        const transportOptionsContainer = document.getElementById('transport-options');
+
+        function showTransportTab(tabName) {
+            transportTabs.forEach(tab => {
+                tab.classList.remove('border-blue-500', 'text-blue-600');
+                tab.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+            });
+            document.getElementById(`${tabName}-tab`).classList.add('border-blue-500', 'text-blue-600');
+            document.getElementById(`${tabName}-tab`).classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+
+            transportContents.forEach(content => content.classList.add('hidden'));
+            document.getElementById(`${tabName}-options`).classList.remove('hidden');
+        }
+        
+        function searchTransport() {
+            const city = document.getElementById('transport-city-input').value;
+            if (!city) {
+                showModal("Input Missing", "Please enter a city to find transport options.");
+                return;
+            }
+            transportOptionsContainer.classList.add('hidden');
+            transportLoader.classList.remove('hidden');
+            // Simulate API call
+            setTimeout(() => {
+                transportLoader.classList.add('hidden');
+                transportOptionsContainer.classList.remove('hidden');
+                // For now, we just show the existing dummy data.
+                // In a real app, you'd fetch data based on the city.
+                showModal("Transport Searched", `Displaying transport options for ${city} (dummy data).`);
+            }, 1000);
+        }
+
+
+        // --- Visa Application Page Logic ---
+        const visaDestinationSelect = document.getElementById('visa-destination-city');
+        const visaFormSection = document.getElementById('visa-form-section');
+        const visaForm = document.getElementById('visa-application-form');
+
+        visaDestinationSelect.addEventListener('change', function() {
+            if (this.value && this.value !== "Select your destination") {
+                visaFormSection.classList.remove('hidden');
+            } else {
+                visaFormSection.classList.add('hidden');
+            }
+        });
+
+        function submitVisaApplication() {
+            if (visaForm.checkValidity()) {
+                 showModal(
+                    '<i class="fas fa-check-circle text-green-500 text-3xl mb-2"></i> Application Submitted!',
+                    'Your visa application has been submitted (this is a dummy confirmation). You will receive an email shortly.'
+                );
+                visaForm.reset();
+                visaFormSection.classList.add('hidden');
+                visaDestinationSelect.value = "Select your destination";
+            } else {
+                // Basic HTML5 validation will show messages for required fields
+                showModal(
+                    '<i class="fas fa-exclamation-triangle text-red-500 text-3xl mb-2"></i> Validation Error',
+                    'Please fill out all required fields in the visa application form.'
+                );
+            }
+        }
+
+        // --- Book Hotel Page Logic ---
+        const hotelResultsContainer = document.getElementById('hotel-results');
+        const hotelLoader = document.getElementById('hotel-results-loader');
+
+        function searchHotels() {
+            const city = document.getElementById('hotel-city-input').value;
+            if (!city) {
+                showModal("Input Missing", "Please enter a city to search for hotels.");
+                return;
+            }
+
+            hotelResultsContainer.innerHTML = '';
+            hotelResultsContainer.classList.add('hidden');
+            hotelLoader.classList.remove('hidden');
+
+            setTimeout(() => {
+                hotelLoader.classList.add('hidden');
+                hotelResultsContainer.classList.remove('hidden');
+                const dummyHotels = [
+                    { name: "Grand Plaza Hotel", stars: 5, price: "$250", amenities: ["Wi-Fi", "Breakfast", "Pool", "Gym"], img: "https://placehold.co/600x400/34d399/ffffff?text=Grand+Plaza" },
+                    { name: "City Comfort Inn", stars: 4, price: "$120", amenities: ["Wi-Fi", "Breakfast"], img: "https://placehold.co/600x400/fbbf24/ffffff?text=Comfort+Inn" },
+                    { name: "Riverside Boutique Hotel", stars: 4, price: "$180", amenities: ["Wi-Fi", "Pool", "Restaurant"], img: "https://placehold.co/600x400/60a5fa/ffffff?text=Riverside+Hotel" }
+                ];
+
+                if (dummyHotels.length === 0) {
+                    hotelResultsContainer.innerHTML = '<p class="text-gray-600 col-span-full text-center">No hotels found in this city.</p>';
+                    return;
+                }
+
+                let hotelsHTML = '';
+                dummyHotels.forEach(hotel => {
+                    hotelsHTML += `
+                        <div class="bg-white rounded-lg shadow-lg overflow-hidden transform hover:shadow-xl transition-shadow duration-300">
+                            <img src="${hotel.img}" alt="${hotel.name}" class="w-full h-48 object-cover">
+                            <div class="p-4">
+                                <h3 class="text-xl font-semibold text-gray-800 mb-1">${hotel.name}</h3>
+                                <div class="flex items-center mb-2">
+                                    ${Array(hotel.stars).fill(0).map(() => '<i class="fas fa-star text-yellow-400"></i>').join('')}
+                                    ${Array(5 - hotel.stars).fill(0).map(() => '<i class="far fa-star text-yellow-400"></i>').join('')}
+                                </div>
+                                <p class="text-lg font-bold text-blue-600 mb-2">${hotel.price} <span class="text-sm font-normal text-gray-500">/ night</span></p>
+                                <p class="text-sm font-medium text-gray-700 mb-1">Amenities:</p>
+                                <div class="flex flex-wrap gap-2 text-xs mb-3">
+                                    ${hotel.amenities.map(a => `<span class="bg-blue-100 text-blue-700 px-2 py-1 rounded-full">${a}</span>`).join('')}
+                                </div>
+                                <button class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg" onclick="showModal('Hotel Booked!', '${hotel.name} has been booked for you (dummy confirmation).')">Book Now</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                hotelResultsContainer.innerHTML = hotelsHTML;
+            }, 1500);
+        }
+
+        // --- Best Packages Page Logic ---
+        const bestPackageResultsContainer = document.getElementById('best-package-results');
+        const bestPackageLoader = document.getElementById('best-package-loader');
+
+        function searchBestPackages() {
+            const city = document.getElementById('package-city').value;
+            const date = document.getElementById('package-date').value;
+
+            if (!city || !date) {
+                showModal("Input Missing", "Please enter both city and travel date.");
+                return;
+            }
+
+            bestPackageResultsContainer.innerHTML = '';
+            bestPackageResultsContainer.classList.add('hidden');
+            bestPackageLoader.classList.remove('hidden');
+
+            setTimeout(() => {
+                bestPackageLoader.classList.add('hidden');
+                bestPackageResultsContainer.classList.remove('hidden');
+
+                const packageDetails = {
+                    flight: { name: "BlueSky Airways", price: "$450" },
+                    hotel: { name: "Central Park Hotel", rate: "$150/night (3 nights)" },
+                    transport: { type: "Private Airport Transfer", cost: "$50" },
+                    tourism: { name: "City Highlights Tour", price: "$120" },
+                    totalCost: "$1070" // (450 + 150*3 + 50 + 120) - example
+                };
+                
+                let packageHTML = `
+                    <h2 class="text-2xl font-bold text-blue-700 mb-4">Your Custom Package to ${city}</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div class="bg-blue-50 p-4 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold text-blue-600 mb-2"><i class="fas fa-plane-departure mr-2"></i>Flight Details</h3>
+                            <p><strong>Airline:</strong> ${packageDetails.flight.name}</p>
+                            <p><strong>Price:</strong> ${packageDetails.flight.price}</p>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold text-green-600 mb-2"><i class="fas fa-hotel mr-2"></i>Hotel Details</h3>
+                            <p><strong>Name:</strong> ${packageDetails.hotel.name}</p>
+                            <p><strong>Rate:</strong> ${packageDetails.hotel.rate}</p>
+                        </div>
+                        <div class="bg-yellow-50 p-4 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold text-yellow-600 mb-2"><i class="fas fa-car mr-2"></i>Transport</h3>
+                            <p><strong>Type:</strong> ${packageDetails.transport.type}</p>
+                            <p><strong>Cost:</strong> ${packageDetails.transport.cost}</p>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg shadow">
+                            <h3 class="text-lg font-semibold text-purple-600 mb-2"><i class="fas fa-map-signs mr-2"></i>Tourism Package</h3>
+                            <p><strong>Name:</strong> ${packageDetails.tourism.name}</p>
+                            <p><strong>Price:</strong> ${packageDetails.tourism.price}</p>
+                        </div>
+                    </div>
+                    <div class="text-center border-t pt-6">
+                        <p class="text-2xl font-bold text-gray-800 mb-3">Total Estimated Cost: <span class="text-red-600">${packageDetails.totalCost}</span></p>
+                        <button class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-lg text-lg shadow-lg transform hover:scale-105 transition-transform" onclick="showModal('Full Package Booked!', 'Your amazing package to ${city} is confirmed (dummy confirmation)!')">
+                            <i class="fas fa-gift mr-2"></i>Book Full Package
+                        </button>
+                    </div>
+                `;
+                bestPackageResultsContainer.innerHTML = packageHTML;
+
+            }, 2000);
+        }
+
+        // Initialize with the home page
+        document.addEventListener('DOMContentLoaded', () => {
+            showPage('home');
+        });
+    </script>
+</body>
+</html>
